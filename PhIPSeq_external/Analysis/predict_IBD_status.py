@@ -1,20 +1,22 @@
 import os
-import pandas
-import numpy
 import sys
 import time
+
 import matplotlib.pyplot as plt
+import numpy
+import pandas
+import seaborn as sns
 import sklearn
+import xgboost
 from scipy.stats import ks_2samp, chisquare
-from statsmodels.stats.multitest import multipletests
+from sklearn.decomposition import PCA
+from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import r2_score, roc_curve, auc
-import xgboost
-from sklearn.linear_model import SGDClassifier
-import seaborn as sns
-from sklearn.decomposition import PCA
+from statsmodels.stats.multitest import multipletests
 
 import PhIPSeq_external.config as config
+
 base_path = config.ANALYSIS_PATH
 
 NUM_TH = 16
@@ -43,10 +45,10 @@ def pipeline_cross_val_x(predictor, in_data, CV=10, is_classifier=True, save_pre
 
     inds = list(df_in.sample(len(df_in)).index)
 
-    jump = len(inds)/CV
+    jump = len(inds) / CV
     for i in range(CV):
-        test_index = inds[int(i*jump): int((i+1)*jump)]
-        train_index = inds[:int(i*jump)] +inds[int((i+1)*jump):]
+        test_index = inds[int(i * jump): int((i + 1) * jump)]
+        train_index = inds[:int(i * jump)] + inds[int((i + 1) * jump):]
         print("fold %d of %d" % (i, CV), time.ctime())
         X_train, X_test = df_in.loc[train_index], df_in.loc[test_index]
         y_train, y_test = df_out.loc[train_index], df_out.loc[test_index]
@@ -54,7 +56,7 @@ def pipeline_cross_val_x(predictor, in_data, CV=10, is_classifier=True, save_pre
         cv_predictor.fit(X_train, y_train)
         if is_classifier:
             prob = cv_predictor.predict_proba(X_test)
-            results['y_hat'].loc[test_index] = numpy.ndarray.flatten(prob[:,cv_predictor.classes_ == 1])
+            results['y_hat'].loc[test_index] = numpy.ndarray.flatten(prob[:, cv_predictor.classes_ == 1])
             if numpy.ndarray.flatten(prob).max() > 1:
                 print("impossible predicted probability")
             results['predicted_status'].loc[test_index] = cv_predictor.predict(X_test)
@@ -104,7 +106,7 @@ def perform_dimensionality_reduction(out_path, existence_table, cohorts, dimensi
                                      column_prefix, **kwargs):
     transformed_table = dimensionality_reduction_class.fit_transform(existence_table)
     transformed_table = pandas.DataFrame(index=existence_table.index,
-                                         columns=list(map(lambda x: f'{column_prefix}{x}', 
+                                         columns=list(map(lambda x: f'{column_prefix}{x}',
                                                           range(1, 1 + dimensionality_reduction_class.n_components))),
                                          data=transformed_table)
     transformed_table.to_csv(os.path.join(out_path, f'{data_type}.csv'))
@@ -116,19 +118,19 @@ def perform_dimensionality_reduction(out_path, existence_table, cohorts, dimensi
             pca_info[c] += list(ks_2samp(transformed_table.loc[cohorts[cohorts].index][c].values,
                                          transformed_table.loc[cohorts[~cohorts].index][c].values, 'less'))
             pca_info[c] += list(ks_2samp(transformed_table.loc[cohorts[cohorts].index][c].values,
-                                        transformed_table.loc[cohorts[~cohorts].index][c].values, 'greater'))
+                                         transformed_table.loc[cohorts[~cohorts].index][c].values, 'greater'))
         pca_info = pandas.DataFrame(pca_info, index=['exp_var', 'ks_l_stat', 'ks_l_pval', 'ks_g_stat', 'ks_g_pval']).T
-        pca_info.to_csv(os.path.join(out_path,  data_type + '_info.csv'))
+        pca_info.to_csv(os.path.join(out_path, data_type + '_info.csv'))
 
     # Figure by status
     pca_info['min_ks'] = pca_info[['ks_g_stat', 'ks_g_pval']].min(1)
     pca_info.sort_values('min_ks', inplace=True)
     transformed_table.index = transformed_table.index.get_level_values(0)
-    x = pca_info.index[0] #f'{column_prefix}1'
-    y = pca_info.index[1] #f'{column_prefix}2'
+    x = pca_info.index[0]  # f'{column_prefix}1'
+    y = pca_info.index[1]  # f'{column_prefix}2'
     fig, ax = plt.subplots(ncols=1, nrows=1)
-    sns.scatterplot(x=x, y=y, data=transformed_table, #transformed_table[x].values, y=transformed_table[y].values, 
-                    hue=cohorts*1, ax=ax)
+    sns.scatterplot(x=x, y=y, data=transformed_table,  # transformed_table[x].values, y=transformed_table[y].values,
+                    hue=cohorts * 1, ax=ax)
     if 'pca' in data_type:
         plt.xlabel('%s (explained variance %.2g%%)' % (x, 100 * pca_info.loc[x, 'exp_var']))
         plt.ylabel('%s (explained variance %.2g%%)' % (y, 100 * pca_info.loc[y, 'exp_var']))
@@ -225,12 +227,12 @@ if __name__ == '__main__':
         plt.scatter((fold[meta.StudyTypeID == 32] > 0).sum(0).values, (fold[meta.StudyTypeID == 33] > 0).sum(0).values,
                     label="All", color="cyan")
         inds = res[res.FDR_chisq].index
-        plt.scatter((fold[meta.StudyTypeID == 32] > 0).sum(0)[inds].values, 
+        plt.scatter((fold[meta.StudyTypeID == 32] > 0).sum(0)[inds].values,
                     (fold[meta.StudyTypeID == 33] > 0).sum(0)[inds].values, label='Significantly Different', color="b")
         if os.path.exists(os.path.join(out_path, "excluse_%d_%s.csv" % (NUM_TAKE, diag))):
             exclude = pandas.read_csv(os.path.join(out_path, "excluse_%d_%s.csv" % (NUM_TAKE, diag)), index_col=0)
             exclude = exclude[exclude.coagulation_related == 1].index
-            plt.scatter((fold[meta.StudyTypeID == 32] > 0).sum(0)[exclude].values, 
+            plt.scatter((fold[meta.StudyTypeID == 32] > 0).sum(0)[exclude].values,
                         (fold[meta.StudyTypeID == 33] > 0).sum(0)[exclude].values, label='Exclude for Plasma vs. Serum',
                         color='k')
         plt.legend()
@@ -250,9 +252,11 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.join(out_path, "preds_IBD_%s_%d.csv" % (diag, NUM_TAKE))):
         sc, mean, std, results = pipeline_cross_val_x(predictor_class, [fold[cols], (meta.StudyTypeID == 32)], CV=CV,
                                                       is_classifier=True, plot=("IBD_%d" % NUM_TAKE), out_path=out_path,
-                                            save_pred=os.path.join(out_path, "preds_IBD_%s_%d.csv" % (diag, NUM_TAKE)))
-        pr = ("On agilent lib oligos (appear >%g, %d oligos) %d-fold XGB classifier got AUC %g" % (MIN_APPEAR, len(cols),
-                                                                                                   CV, sc))
+                                                      save_pred=os.path.join(out_path,
+                                                                             "preds_IBD_%s_%d.csv" % (diag, NUM_TAKE)))
+        pr = ("On agilent lib oligos (appear >%g, %d oligos) %d-fold XGB classifier got AUC %g" % (
+        MIN_APPEAR, len(cols),
+        CV, sc))
         print(pr)
         log += pr + "\n\n"
 
@@ -260,12 +264,12 @@ if __name__ == '__main__':
         sc, mean, std, results = pipeline_cross_val_x(predictor_class, [fold[ex_cols], (meta.StudyTypeID == 32)],
                                                       CV=CV, is_classifier=True, plot="%s_ex_%d" % (diag, NUM_TAKE),
                                                       out_path=out_path,
-                                        save_pred=os.path.join(out_path, "preds_%s_ex_%d.csv" % (diag, NUM_TAKE)))
+                                                      save_pred=os.path.join(out_path,
+                                                                             "preds_%s_ex_%d.csv" % (diag, NUM_TAKE)))
         pr = ("On agilent lib oligos without serum related " +
               "(appear >%g, %d oligos) %d-fold XGB classifier got AUC %g" % (MIN_APPEAR, len(ex_cols), CV, sc))
         print(pr)
         log += pr + "\n\n"
-
 
     if not os.path.exists(os.path.join(out_path, "predictor_%s_%d.mdl" % (diag, NUM_TAKE))):
         make_clasifier(predictor_class, [fold[cols], (meta.StudyTypeID == 32)],
@@ -281,7 +285,7 @@ if __name__ == '__main__':
         name = os.path.join(out_path, 'sub_grps_prediction_%s_%d' % (diag, NUM_TAKE))
     if not os.path.exists(name + ".csv"):
         res = {}
-        for grp in ['all', 'VFDB', 'metagenomics', 'metagenomics flagellins']: #'VFDB flagellins',
+        for grp in ['all', 'VFDB', 'metagenomics', 'metagenomics flagellins']:  # 'VFDB flagellins',
             if grp == 'all':
                 sub_cols = df_info[~df_info.is_IEDB_or_cntrl].index
             elif grp == 'VFDB':
@@ -289,9 +293,9 @@ if __name__ == '__main__':
             elif grp == 'VFDB flaggelins':
                 df_info['is_flagellin'] = [('flagell' in x.lower()) if type(x) is str else False
                                            for x in df_info.uniref_func.values]
-                sub_cols = df_info[df_info.is_toxin&df_info.is_flagellin].index
+                sub_cols = df_info[df_info.is_toxin & df_info.is_flagellin].index
             elif grp == 'metagenomics':
-                sub_cols = df_info[df_info.is_PNP|df_info.is_nonPNP_strains].index
+                sub_cols = df_info[df_info.is_PNP | df_info.is_nonPNP_strains].index
             elif grp == 'metagenomics flagellins':
                 sub_cols = df_info[df_info.is_bac_flagella].index
 

@@ -12,10 +12,11 @@ from matplotlib.lines import Line2D
 from sklearn.metrics import roc_curve, auc
 
 import PhIPSeq_external.config as config
+
 base_path = config.ANALYSIS_PATH
 
 params_class = {'colsample_bylevel': 0.075, 'max_depth': 6,
-          'learning_rate': 0.0025, 'n_estimators': 4000, 'subsample': 0.6, 'min_child_weight': 20}
+                'learning_rate': 0.0025, 'n_estimators': 4000, 'subsample': 0.6, 'min_child_weight': 20}
 params_pred = params_class.copy()
 params_pred['objective'] = 'reg:squarederror'
 
@@ -163,7 +164,7 @@ def fit_pheno(pheno, sbj_inf, inds, cache_path, pred_path, OLIGO, TYPE, use_MB, 
         print("Fold #%d of %s: %s train, %s test" % (fold, pheno, train_r, test_r))
         cv_pred += list(test_predict)
 
-    pandas.Series(cv_pred, index=sbj_inf.loc[locs].index).to_csv(os.path.join(pred_path, "preds_%s_%s_%d.csv" % 
+    pandas.Series(cv_pred, index=sbj_inf.loc[locs].index).to_csv(os.path.join(pred_path, "preds_%s_%s_%d.csv" %
                                                                               (fname, pheno, copy)))
     if len(set(sbj_inf.loc[locs].values)) > 2:
         test_r = scipy.stats.pearsonr(sbj_inf.loc[locs].values, cv_pred)
@@ -412,24 +413,24 @@ if __name__ == '__main__':
                             res[pheno + "_" + name] = [pheno, 'MB' in name, 'PH' in name, False, ls[0].mean(),
                                                        ls[0].std(), numpy.nan, numpy.nan, numpy.nan]
                 res = pandas.DataFrame(res).T
-                res.columns = ['pheno', 'MB', 'PH', 'avg', 'R2/AUC mean',  'R2/AUC std', 'pearson_r mean',
+                res.columns = ['pheno', 'MB', 'PH', 'avg', 'R2/AUC mean', 'R2/AUC std', 'pearson_r mean',
                                'pearson_r std', 'pearson_p mean']
                 res.sort_values(['pheno', 'MB', 'PH'], inplace=True)
                 res.to_csv(os.path.join(pred_path, "all_res_test.csv"))
 
     print("Done")
 
-    fs = glob.glob(os.path.join(base_path, "predict_wMB/Olis_fold/*/all_res_test.csv"))
+    fs = glob.glob(os.path.join(base_path, "predict_wMB", "Olis_fold", "*", "all_res_test.csv"))
     dfs = {}
     for f in fs:
-        dfs[f.split('/')[-2].split("_")[1]] = pandas.read_csv(f, index_col=0)
+        dfs[f.split(os.sep)[-2].split("_")[1]] = pandas.read_csv(f, index_col=0)
     for pheno in ['age', 'gender']:
         plt.figure()
         plt.suptitle(pheno)
         for i, name in enumerate(dfs.keys()):
-            plt.subplot("22%d" % (i+1))
+            plt.subplot("22%d" % (i + 1))
             tmp = dfs[name][dfs[name].pheno == pheno]
-            tmp.index = ["predict_" + x.replace("_%s" % pheno, "").replace("%s_" % pheno, "").replace("_", "&") 
+            tmp.index = ["predict_" + x.replace("_%s" % pheno, "").replace("%s_" % pheno, "").replace("_", "&")
                          for x in tmp.index]
             plt.barh(list(tmp.index), list(tmp['R2/AUC mean'].values), yerr=list(tmp['R2/AUC std'].values), height=0.4)
             if pheno != 'gender':
@@ -439,5 +440,5 @@ if __name__ == '__main__':
                 plt.xlim([0.5, 0.9])
                 plt.title("AUC of predictors from %s" % name)
             plt.tight_layout()
-        plt.savefig(os.path.join(base_path, "predict_wMB/Olis_fold/res_%s.png" % pheno))
+        plt.savefig(os.path.join(base_path, "predict_wMB", "Olis_fold", "res_%s.png" % pheno))
     plt.show()

@@ -1,7 +1,8 @@
 import os
 
 if os.path.exists(__file__.replace('.py', '_local.py')):
-    pass
+    # noinspection PyUnresolvedReferences
+    from config_local.py import *
 
 
 ##################################################################
@@ -12,6 +13,7 @@ PATH_PHAGE = globals().get('PATH_PHAGE', os.path.join(PATH_START, "final_coding_
 PATH_DICTS = globals().get('PATH_DICTS', os.path.join(PATH_PHAGE, "dicts"))
 BASE_PATH = globals().get('BASE_PATH', os.path.join(PATH_START, "try_PH"))
 ANALYSIS_PATH = globals().get('ANALYSIS_PATH', os.path.join(PATH_START, "Analysis"))
+PYTHON_PATH = "" #TODO: you python path here (e.g. /usr/python3.5.3/bin/python
 
 
 ##################################################################

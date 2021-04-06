@@ -2,7 +2,6 @@ import glob
 import math
 import os
 import sys
-import time
 
 import matplotlib.pyplot as plt
 import numpy
@@ -19,9 +18,10 @@ PVAL = 0.05
 PLOT_LEVEL = 1
 MAX_READS = 1.25 * 10 ** 6
 MIN_PROP_READS = 0.6
-OUT_DUP = False # whether to create p_values for duplicates or only for one copy
+OUT_DUP = False  # whether to create p_values for duplicates or only for one copy
 
 LIBS = ["A", "T", "AT", "AC1", "AC2", "C2"]  # Agilent, Twist, Agilent&Twist, Agilent&Corona1, Agilent&Corona2, Corona2
+
 
 def run_well(inp, out_base, ID, lib, cols, max_reads):
     print("Working on %s" % inp)
@@ -51,7 +51,7 @@ def run_well(inp, out_base, ID, lib, cols, max_reads):
                                                  ext="_R1_001.fastq", ext2="_R2_001.fastq")
 
     print("%s got %d good reads" % (os.path.basename(inp), num_reads))
-    f_input_levels = os.path.join(config.BASE_PATH, "PE_input_levels/%s/found_all.csv") % lib
+    f_input_levels = os.path.join(config.BASE_PATH, "PE_input_levels", "%s", "found_all.csv") % lib
     out_path = os.path.join(out_path, ("res_%s_vs_%s_%s" % (os.path.splitext(os.path.basename(f_serum))[0],
                                                             os.path.splitext(os.path.basename(f_input_levels))[0],
                                                             "__".join(cols))))
@@ -62,9 +62,9 @@ def run_well(inp, out_base, ID, lib, cols, max_reads):
         print("Output %s exits" % out_path)
     if len(glob.glob(os.path.join(out_path, "top_samp*.csv"))) != 0:
         return num_vars, out_path, num_reads, [None, None], None
-    
+
     pr_out = open(os.path.join(out_path, "log.txt"), "w")
-    lam_p, tet_b = run_serum_vs_input_levels(f_input_levels, f_serum, cols, 1., num_vars, out_path, PLOT_LEVEL, 
+    lam_p, tet_b = run_serum_vs_input_levels(f_input_levels, f_serum, cols, 1., num_vars, out_path, PLOT_LEVEL,
                                              pr_out=pr_out)
     pr_out.close()
     return num_vars, out_path, num_reads, lam_p, tet_b
@@ -327,9 +327,9 @@ def check_and_correct(tkttores, comments, IDs, out_path, cols, lib, max_reads, n
     print("Checking mocks (with phage, no serum)")
     _, bad_olis, log = check_mock(tkttores, log, min_p, "Mock", "-log10_p")
     print("Checking anchors (with phage, with joint three person serum)")
-    if os.path.exists(os.path.join(config.BASE_PATH, "PE_anchor_levels/%s/found_all.csv" % lib)):
+    if os.path.exists(os.path.join(config.BASE_PATH, "PE_anchor_levels", "%s", "found_all.csv" % lib)):
         _, log = check_anchor(tkttores, log, 0.9, bad_olis, "Anchor",
-                              os.path.join(config.BASE_PATH, "PE_anchor_levels/%s/found_all.csv") %
+                              os.path.join(config.BASE_PATH, "PE_anchor_levels", "%s", "found_all.csv") %
                               lib, cols)
     else:
         print("Can't check anchors. No base levels.")
@@ -419,7 +419,7 @@ def run_plate(in_dir, seq_num, plate, max_reads, lib, num_in_ref, base_path=conf
     print("Initializing")
     print("Starting")
 
-    out_path = os.path.join(os.path.join(out_dir, "runsPE_%d/%s/%s_%s" % (max_reads, lib, plate, ext)))
+    out_path = os.path.join(os.path.join(out_dir, "runsPE_%d", "%s", "%s_%s" % (max_reads, lib, plate, ext)))
     if not os.path.exists(out_path):
         os.makedirs(out_path)
 
@@ -462,12 +462,12 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if len(sys.argv) < 3:
-        print("/usr/wisdom/python3.5.3/bin/python run_plate_NextSeq_PE.py " +
+        print(f"{config.PYTHON_PATH} run_plate_NextSeq_PE.py " +
               "<in_dir> <num_seq_run> <plate> <lib> <max_reads>")
         print("<in_dir> name of NextSeq input directory (the FastqOutput directory)")
         print("<num_seq_run> number to be added to plate number. Please be carefull with this")
         print("<plate> plate in input directory, like R2P1")
-        print("<lib> which library to run against options are %s. Default is AT (Agilent&Twist)" % ("/".join(LIBS)))
+        print("<lib> which library to run against options are %s. Default is AT (Agilent&Twist)" % (os.path.join(LIBS)))
         print("<max_reads> optional, maximal number of reads used. Default is %d" % MAX_READS)
         sys.exit(0)
 
@@ -484,7 +484,7 @@ if __name__ == '__main__':
         lib = "AT"
     print("Running on %s %d %s lib %s %d" % (sys.argv[1], int(sys.argv[2]), sys.argv[3], lib, max_reads))
 
-    fnum = os.path.join(config.BASE_PATH, "PE_input_levels/%s/num_all.csv" % lib)
+    fnum = os.path.join(config.BASE_PATH, "PE_input_levels", str(lib), "num_all.csv")
     if os.path.exists(fnum):
         num_in_ref = int(open(fnum, "r").readline().strip())
     else:

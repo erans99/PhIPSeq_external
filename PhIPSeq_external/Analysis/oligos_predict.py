@@ -40,11 +40,6 @@ def check_shap(pheno, sbj_inf, cache_path, OLIGO, TYPE, INCLUDE, ext=pandas.Data
     if OLIGO:
         print("Working on oligos %s %s" % (TYPE, INCLUDE))
         df_info = pandas.read_pickle(os.path.join(cache_path, "df_info_agilent_final_allsrc.pkl"))
-        df_info.index = ["%s_%s" % (lib, x) for x in df_info.index]
-        cols = list(df_info.columns)
-        for c in ['end0_len15', 'hash0_len15', 'end1_len15', 'hash1_len15', 'end2_len14',
-                  'hash2_len14', 'end3_len15', 'hash3_len15', 'end4_len16', 'hash4_len16']:
-            cols.pop(cols.index(c))
         df_info = df_info[cols]
         if INCLUDE == 'bacterial':
             df_info = df_info[~df_info.is_IEDB_or_cntrl]

@@ -1,12 +1,13 @@
 import os
-import pandas
-import numpy
 import sys
 import time
-from scipy.stats import ks_2samp, chisquare
+
+import pandas
+from scipy.stats import chisquare
 from statsmodels.stats.multitest import multipletests
 
 import PhIPSeq_external.config as config
+
 base_path = config.ANALYSIS_PATH
 
 if __name__ == '__main__':
