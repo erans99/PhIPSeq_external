@@ -13,19 +13,19 @@ if not os.path.exists(cache_path):
 df = pandas.read_csv(os.path.join(input_path, 'cohort_info.csv'), index_col=0)
 df.old_RegistrationCode = df.old_RegistrationCode.astype(str)
 
-meta_cols = ['RegistrationCode', 'old_RegistrationCode', 'num_passed', 'Date']
+meta_cols = ['RegistrationCode', 'old_RegistrationCode', 'num_passed_total', 'Date']
 sbj_cols = list(df.columns.difference(meta_cols)) + ['age']
 
 base_df = df[df['RegistrationCode'] == df['old_RegistrationCode']].copy()
 print("base_df with repeating individuals %d" % len(base_df))
 base_df = base_df.reset_index().sort_values('Date').groupby('RegistrationCode').first()
 print("base_df with without repeating individuals %d" % len(base_df))
-base_df = base_df[base_df.num_passed > 200]
+base_df = base_df[base_df.num_passed_total > 200]
 base_df['age'] = [int(base_df.loc[x].Date[:4])-base_df.loc[x].yob for x in base_df.index]
 
 print("Base cohort %d subjects, age range %d-%d" % (len(base_df), base_df['age'].min(), base_df['age'].max()))
 
-MB = pandas.read_csv(os.path.join(input_path, "MB.csv"), index_col=0)
+MB = pandas.read_csv(os.path.join(input_path, "MB_composition.csv"), index_col=0)
 
 dfs = {}
 for i in base_df['index'].values:
