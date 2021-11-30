@@ -3,8 +3,9 @@ import os
 import matplotlib.pyplot as plt
 import numpy
 import pandas
-from scipy.stats import ttest_ind, chisquare, wilcoxon
+from scipy.stats import chisquare
 from statsmodels.stats.multitest import multipletests
+
 from config import base_path, out_path
 
 MIN_OLIS = 200
@@ -15,17 +16,18 @@ MIN_EXIST_OLIS = 0.02
 if __name__ == '__main__':
     os.makedirs(out_path, exist_ok=True)
 
-    df_info = pandas.read_csv(os.path.join(base_path, "library_contents.csv"), index_col=0)
+    df_info = pandas.read_csv(os.path.join(base_path, "library_contents.csv"), index_col=0, low_memory=False)
     df_info = df_info[(df_info.is_allergens | df_info.is_IEDB) & (df_info['num_copy'] == 1)]
     inds = df_info.index
     l_base = len(inds)
 
-    meta_df = pandas.read_csv(os.path.join(base_path, "cohort.csv"), index_col=0)
+    meta_df = pandas.read_csv(os.path.join(base_path, "cohort.csv"), index_col=0, low_memory=False)
     vs = meta_df.ID.value_counts()
     vs = vs[vs == 2].index
     meta_df = meta_df[meta_df.ID.isin(vs)].sort_values(['ID', 'timepoint'])
 
-    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1]).loc[meta_df.index].unstack()
+    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1], low_memory=False).loc[
+        meta_df.index].unstack()
     fold_df.columns = fold_df.columns.get_level_values(1)
     fold_df = fold_df[fold_df.columns.intersection(inds)]
 
@@ -68,7 +70,7 @@ if __name__ == '__main__':
     for x in chng2.columns:
         f_obs = []
         st = [(base_exist[x] == 0).sum()]
-        st.append(lind-st[0])
+        st.append(lind - st[0])
         f_exp = [st[0] * prob_chng[0], st[1] * prob_chng[1], st[0] * (1 - prob_chng[0]), st[1] * (1 - prob_chng[1])]
         for i in range(4):
             f_obs.append((chng2[x] == i).sum())
@@ -85,7 +87,7 @@ if __name__ == '__main__':
     chi.sort_values('chi_pval', inplace=True)
 
     df_passed = chi[chi.passed_FDR].copy()
-    df_passed['non_stable'] = df_passed.num_stable < (lind*(2*prob_chng[0]-1))
+    df_passed['non_stable'] = df_passed.num_stable < (lind * (2 * prob_chng[0] - 1))
     df_passed['oligo_name'] = df_info.loc[df_passed.index]['full name'].values
     add_cols = ['is_IEDB', 'is_allergens', 'is_auto', 'is_infect', 'by_skin', 'by_digestion', 'by_inhalation',
                 'is_IEDB_other']
@@ -108,11 +110,11 @@ if __name__ == '__main__':
     print("Non stable: %d passed FDR %d Bonf" % (len(df_passed), len(df_passed[df_passed.passed_Bonf])))
     check_cols = ['is_infect', 'is_auto_not_infect', 'is_IEDB_other', 'by_skin', 'by_digestion', 'by_inhalation']
 
-    fig, ax = plt.subplots(figsize=[10,5])
+    fig, ax = plt.subplots(figsize=[10, 5])
     pos = numpy.arange(len(check_cols))
     w = 0.3
     rects1 = ax.bar(pos, df_passed[check_cols].sum(), w, label='num passed FDR', color='#ffd966fe')
-    rects2 = ax.bar(pos+w, cnt.loc['tested'][check_cols] / sum(cnt.loc['tested'][check_cols]) *
+    rects2 = ax.bar(pos + w, cnt.loc['tested'][check_cols] / sum(cnt.loc['tested'][check_cols]) *
                     df_passed[check_cols].sum().sum(), w,
                     label='expected by num_checked', color='#a9d18efe')
     plt.legend()
@@ -120,4 +122,3 @@ if __name__ == '__main__':
     plt.title("Number of oligos which passed FDR for non-stability in different groups")
     plt.savefig(os.path.join(out_path, "FDR_changed_by_type.png"))
     plt.close("all")
-

@@ -8,4 +8,5 @@ setup(
     packages=['PhIPSeq_external'],
     license='LICENSE',
     long_description=open('README.md').read(),
-    requires=['matplotlib', 'numpy', 'pandas', 'scipy', 'scikit-learn', 'xgboost', 'statsmodels', 'seaborn'])
+    requires=['matplotlib', 'numpy', 'pandas', 'scipy', 'scikit-learn', 'xgboost', 'statsmodels', 'seaborn',
+              'statannot'])
