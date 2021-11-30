@@ -26,7 +26,7 @@ def run_on_inds(k, inds, base, repeat, outpath, fold_df):
             print("At %d or %d" % (i, len(base)))
         tmp = {}
         for j, r in enumerate(repeat):
-            comp = tmp_fold_df.loc[[b, r], inds].dropna(1, 'all').T
+            comp = tmp_fold_df.loc[[b, r], inds].dropna(axis=1, how='all').T
             comp.fillna(1, inplace=True)
             tmp[r] = comp.corr('spearman').loc[b, r]
         res[b] = tmp
@@ -105,17 +105,18 @@ def plot_box(res, outpath, name):
 
 
 if __name__ == '__main__':
-    df_info = pandas.read_csv(os.path.join(base_path, "library_contents.csv"), index_col=0)
+    df_info = pandas.read_csv(os.path.join(base_path, "library_contents.csv"), index_col=0, low_memory=False)
     df_info = df_info[(df_info.is_allergens | df_info.is_IEDB) & (df_info['num_copy'] == 1)]
     inds = df_info.index
     l_base = len(inds)
 
-    meta_df = pandas.read_csv(os.path.join(base_path, "cohort.csv"), index_col=0)
+    meta_df = pandas.read_csv(os.path.join(base_path, "cohort.csv"), index_col=0, low_memory=False)
     vs = meta_df.ID.value_counts()
     vs = vs[vs == 2].index
     meta_df = meta_df[meta_df.ID.isin(vs)].sort_values(['ID', 'timepoint'])
 
-    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1]).loc[meta_df.index].unstack()
+    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1],
+                              low_memory=False).loc[meta_df.index].unstack()
     fold_df.columns = fold_df.columns.get_level_values(1)
     fold_df = fold_df[fold_df.columns.intersection(inds)]
 
@@ -167,7 +168,8 @@ if __name__ == '__main__':
         for k in inds.keys():
             print("Working on spearman on %s" % k)
             try:
-                r = pandas.read_csv(os.path.join(outpath, "spearman_on_%s_corr_5years_all.csv" % k), index_col=0)
+                r = pandas.read_csv(os.path.join(outpath, "spearman_on_%s_corr_5years_all.csv" % k), index_col=0,
+                                    low_memory=False)
             except:
                 print("No info for spearman %s. Skipping" % k)
                 continue
@@ -201,8 +203,8 @@ if __name__ == '__main__':
             print_match_info(r, k)
 
         res = pandas.DataFrame(res, index=['Mean', 'SD', 'num_miss', 'vals']).T
-        res[['Mean', 'SD', 'num_miss']].to_csv(os.path.join(outpath, "%s_stats_%s.csv" % (name, n)))
+        res[['Mean', 'SD', 'num_miss']].to_csv(os.path.join(outpath, "%s_stats_spearman.csv" % name))
         if ('is_IEDB' in inds.keys()) and ('is_allergens' in inds.keys()):
-            print("For %s IEDB vs allergens Mann-Whitney on diff within and median between:" % n)
+            print("For spearman IEDB vs allergens Mann-Whitney on diff within and median between:")
             print(mannwhitneyu(med['is_allergens'][2], med['is_IEDB'][2]))
         plot_box(res, outpath, name)
