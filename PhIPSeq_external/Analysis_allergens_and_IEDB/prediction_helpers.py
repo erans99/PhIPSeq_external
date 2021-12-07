@@ -22,8 +22,8 @@ def get_oligos():
     df = df.loc[:, df.min().ne(-1)].copy()
 
     # Filter to use only IEDB or allergens
-    df_info = pd.read_csv(os.path.join(base_path, "library_contents.csv"), index_col=0, low_memory=False)[
-        ['is_IEDB', 'is_allergens']]
+    df_info = pd.read_csv(os.path.join(base_path, "library_contents.csv"), index_col=0, low_memory=False)
+    df_info = df_info[df_info['num_copy'].eq(1)][['is_IEDB', 'is_allergens']]
     df_info = df_info[df_info.any(axis=1)].index
     df = df.loc[:, df.columns.isin(df_info)].copy()
     assert df.min().min() > 1
