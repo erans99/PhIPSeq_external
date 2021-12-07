@@ -1,14 +1,15 @@
 import os
 import pickle
-
+import seaborn as sns
 import numpy as np
 import pandas as pd
 import shap
 from matplotlib import pyplot as plt
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, fisher_exact
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.metrics import roc_curve, auc, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, train_test_split
+from statsmodels.stats.multitest import fdrcorrection
 
 from PhIPSeq_external.Analysis_allergens_and_IEDB.config import base_path, out_path, MIN_OLIS
 
@@ -19,6 +20,12 @@ def get_oligos():
         meta.index].unstack()
     df = df.T.reset_index(level=0, drop=True).T
     df = df.loc[:, df.min().ne(-1)].copy()
+
+    # Filter to use only IEDB or allergens
+    df_info = pd.read_csv(os.path.join(base_path, "library_contents.csv"), index_col=0, low_memory=False)[
+        ['is_IEDB', 'is_allergens']]
+    df_info = df_info[df_info.any(axis=1)].index
+    df = df.loc[:, df.columns.isin(df_info)].copy()
     assert df.min().min() > 1
     df.fillna(1, inplace=True)
     df = np.log(df)
@@ -39,6 +46,7 @@ def configure_x_y(x, y, metadata=None, is_classifier=False):
     if metadata is None:
         metadata = pd.read_csv(os.path.join(base_path, "cohort.csv"), index_col=0, low_memory=False)[
             ['yob', 'gender']].dropna()
+    metadata.dropna(inplace=True)
     x = x.merge(metadata, left_index=True, right_index=True, how='inner')
     y = y.loc[x.index]
     assert x.shape[0] == y.shape[0]
@@ -103,8 +111,7 @@ def tune_hyper_parameters(x, y, is_classifier):
 
 def draw_auc(x, y, is_classifier, ax=None, num_iterations=0, color='blue', **model_params):
     model_params['random_state'] = 46541357
-    df = predict_with_cross_validation(x, y, is_classifier, return_predictions=True, random_state=1534321,
-                                       **model_params)
+    df = predict_with_cross_validation(x, y, is_classifier, return_predictions=True, **model_params)
     fpr, tpr, thresholds = roc_curve(df['y'], df['y_hat'])
     label = f"Predictor (AUC={auc(fpr, tpr):.3f}"
     if ax is None:
@@ -185,3 +192,42 @@ def read_metadata():
     meta = meta[meta.timepoint.eq(1) & meta.num_passed.ge(MIN_OLIS)]
     meta['age'] = pd.to_datetime(meta['Date']).dt.year - meta['yob']
     return meta
+
+
+def plot_correlations(x, y, target_name, header_true, header_false, ax=None, overwrite=False,
+                      color=sns.color_palette()[0]):
+    if ax is None:
+        ax = plt.subplot()
+    output_path = os.path.join(out_path, '_'.join([target_name, 'correlations.csv']))
+    if overwrite or not os.path.exists(output_path):
+        df = x.gt(0).astype(int)
+        df[target_name] = y.astype(int)
+        summed_outcome = y.value_counts()
+        df = df.groupby(target_name).sum().T
+        fishers_test_df = df.rename(columns={k: f"{int(k)}_1" for k in df.columns})
+        fishers_test_df['1_0'] = summed_outcome.loc[1] - fishers_test_df['1_1']
+        fishers_test_df['0_0'] = summed_outcome.loc[0] - fishers_test_df['0_1']
+        fishers_test_df['oddsratio'] = fishers_test_df.apply(
+            lambda row: fisher_exact([[row['0_0'], row['0_1']], [row['1_0'], row['1_1']]])[0], axis=1)
+        fishers_test_df['p-value'] = fishers_test_df.apply(
+            lambda row: fisher_exact([[row['0_0'], row['0_1']], [row['1_0'], row['1_1']]])[1], axis=1)
+        fishers_test_df['passed_fdr'], fishers_test_df['fdr_corrected_p_value'] = fdrcorrection(
+            fishers_test_df['p-value'])
+        df = df.merge(fishers_test_df[['oddsratio', 'p-value', 'passed_fdr', 'fdr_corrected_p_value']],
+                      left_index=True, right_index=True, how='left')
+        # Rename headers
+        df.rename(columns={True: header_true, False: header_false}, inplace=True)
+        df_info = pd.read_csv(os.path.join(base_path, "library_contents.csv"), index_col=0, low_memory=False)[
+            ['nuc_seq', 'full name']]
+        df = df.merge(df_info, left_index=True, right_index=True, how='left')
+        df.sort_values(by='fdr_corrected_p_value', inplace=True)
+        df.to_csv(output_path)
+    df = pd.read_csv(output_path, index_col=0)
+    df.sort_values(by='fdr_corrected_p_value', ascending=False, inplace=True)
+    ax = sns.scatterplot(data=df, y=header_true, x=header_false, ax=ax, legend=True, hue='passed_fdr',
+                         palette=[color, 'black'], alpha=0.8)
+    legend_handles = ax.get_legend_handles_labels()
+    ax.legend(
+        [legend_handles[0][legend_handles[1].index('True')], legend_handles[0][1 - legend_handles[1].index('True')]],
+        ['Passed FDR', 'Did not pass FDR'])
+    return ax
