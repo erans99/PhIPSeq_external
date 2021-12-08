@@ -9,4 +9,4 @@ setup(
     license='LICENSE',
     long_description=open('README.md').read(),
     requires=['matplotlib', 'numpy', 'pandas', 'scipy', 'scikit-learn', 'xgboost', 'statsmodels', 'seaborn',
-              'statannot'])
+              'statannot', 'shap'])
