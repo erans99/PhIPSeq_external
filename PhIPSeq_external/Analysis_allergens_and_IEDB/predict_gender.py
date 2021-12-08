@@ -31,7 +31,7 @@ def main(tune_params=False):
 
     # Create sub figure b
     ax = fig.add_subplot(spec[1])
-    ax = draw_auc(x, y, is_classifier=True, ax=ax, num_iterations=100, color=color, **params)
+    ax = draw_auc(x, y, ax=ax, num_iterations=100, color=color, **params)
     ax.text(-0.15, 1.0, string.ascii_lowercase[1], transform=ax.transAxes, size=14, weight='bold')
 
     # Create sub figure c

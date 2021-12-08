@@ -1,13 +1,14 @@
 import os
 import pickle
-import seaborn as sns
+
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import shap
 from matplotlib import pyplot as plt
-from scipy.stats import pearsonr, fisher_exact
+from scipy.stats import fisher_exact
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
-from sklearn.metrics import roc_curve, auc, mean_squared_error, r2_score
+from sklearn.metrics import roc_curve, auc, r2_score
 from sklearn.model_selection import KFold, train_test_split
 from statsmodels.stats.multitest import fdrcorrection
 
@@ -15,7 +16,7 @@ from PhIPSeq_external.Analysis_allergens_and_IEDB.config import base_path, out_p
 
 
 def get_oligos():
-    meta = pd.read_csv(os.path.join(base_path, "cohort.csv"), index_col=0, low_memory=False)
+    meta = read_metadata()
     df = pd.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1], low_memory=False).loc[
         meta.index].unstack()
     df = df.T.reset_index(level=0, drop=True).T
@@ -44,8 +45,7 @@ def configure_x_y(x, y, metadata=None, is_classifier=False):
 
     # Add year of birth and gender
     if metadata is None:
-        metadata = pd.read_csv(os.path.join(base_path, "cohort.csv"), index_col=0, low_memory=False)[
-            ['yob', 'gender']].dropna()
+        metadata = read_metadata()[['yob', 'gender']]
     metadata.dropna(inplace=True)
     x = x.merge(metadata, left_index=True, right_index=True, how='inner')
     y = y.loc[x.index]
@@ -56,8 +56,6 @@ def configure_x_y(x, y, metadata=None, is_classifier=False):
 def predict_with_cross_validation(x, y, is_classifier, return_predictions=False, random_state=1534321, **model_params):
     splitter = KFold(n_splits=10, random_state=random_state, shuffle=True)
     pred_ys = []
-    train_preds = []
-    train_trues = []
     true_ys = []
     ids = []
     for train_idx, test_idx in splitter.split(x):
@@ -72,14 +70,10 @@ def predict_with_cross_validation(x, y, is_classifier, return_predictions=False,
         clf.fit(train_x, train_y)
         if is_classifier:
             pred_y = clf.predict_proba(test_x)[:, 1]
-            train_pred_y = clf.predict_proba(train_x)[:, 1]
         else:
             pred_y = clf.predict(test_x)
-            train_pred_y = clf.predict(train_x)
         pred_ys += pred_y.tolist()
         true_ys += test_y.values.tolist()
-        train_preds += train_pred_y.tolist()
-        train_trues += train_y.values.tolist()
         ids += test_x.index.to_list()
     if return_predictions:
         return pd.DataFrame(data={'y': true_ys, 'y_hat': pred_ys}, index=ids)
@@ -109,9 +103,9 @@ def tune_hyper_parameters(x, y, is_classifier):
     return params
 
 
-def draw_auc(x, y, is_classifier, ax=None, num_iterations=0, color='blue', **model_params):
+def draw_auc(x, y, ax=None, num_iterations=0, color='blue', **model_params):
     model_params['random_state'] = 46541357
-    df = predict_with_cross_validation(x, y, is_classifier, return_predictions=True, **model_params)
+    df = predict_with_cross_validation(x, y, is_classifier=True, return_predictions=True, **model_params)
     fpr, tpr, thresholds = roc_curve(df['y'], df['y_hat'])
     label = f"Predictor (AUC={auc(fpr, tpr):.3f}"
     if ax is None:
@@ -200,17 +194,17 @@ def plot_correlations(x, y, target_name, header_true, header_false, ax=None, ove
         ax = plt.subplot()
     output_path = os.path.join(out_path, '_'.join([target_name, 'correlations.csv']))
     if overwrite or not os.path.exists(output_path):
-        df = x.gt(0).astype(int)
+        df = x.filter(regex='^twist_', axis=1).gt(0).astype(int)
         df[target_name] = y.astype(int)
         summed_outcome = y.value_counts()
         df = df.groupby(target_name).sum().T
         fishers_test_df = df.rename(columns={k: f"{int(k)}_1" for k in df.columns})
         fishers_test_df['1_0'] = summed_outcome.loc[1] - fishers_test_df['1_1']
         fishers_test_df['0_0'] = summed_outcome.loc[0] - fishers_test_df['0_1']
-        fishers_test_df['oddsratio'] = fishers_test_df.apply(
-            lambda row: fisher_exact([[row['0_0'], row['0_1']], [row['1_0'], row['1_1']]])[0], axis=1)
-        fishers_test_df['p-value'] = fishers_test_df.apply(
-            lambda row: fisher_exact([[row['0_0'], row['0_1']], [row['1_0'], row['1_1']]])[1], axis=1)
+        fishers_test_df = fishers_test_df.merge(pd.DataFrame(fishers_test_df.apply(
+            lambda row: dict(
+                zip(['oddsratio', 'p-value'], fisher_exact([[row['0_0'], row['0_1']], [row['1_0'], row['1_1']]]))),
+            axis=1).to_dict()).T, left_index=True, right_index=True, how='left')
         fishers_test_df['passed_fdr'], fishers_test_df['fdr_corrected_p_value'] = fdrcorrection(
             fishers_test_df['p-value'])
         df = df.merge(fishers_test_df[['oddsratio', 'p-value', 'passed_fdr', 'fdr_corrected_p_value']],

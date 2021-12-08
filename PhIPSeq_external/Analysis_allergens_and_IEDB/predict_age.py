@@ -23,7 +23,7 @@ def compute_age_correlations(x, y, overwrite=True):
         top_label = f"Percent of oldest quintile (>{int(top_quintile)}\nin whom a peptide is significantly bound"
         age_group = y.apply(
             lambda v: bottom_label if v < bottom_quintile else (top_label if v > top_quintile else np.nan))
-        oligos = x.drop(columns=['gender']).gt(1)
+        oligos = x.drop(columns=['gender']).gt(0)
         oligos['age_group'] = age_group
         oligos.dropna(inplace=True)
 
@@ -33,12 +33,14 @@ def compute_age_correlations(x, y, overwrite=True):
         summed_df.rename(columns={k: f"{k}_1" for k in summed_df.columns}, inplace=True)
         for col in summed_outcome.index:
             summed_df[f"{col}_0"] = summed_outcome.loc[col] - summed_df[f"{col}_1"]
-        summed_df['oddsratio'] = summed_df.apply(
-            lambda row: fisher_exact([[row[bottom_label + '_0'], row[bottom_label + '_1']],
-                                      [row[top_label + '_0'], row[top_label + '_1']]])[0], axis=1)
-        summed_df['p-value'] = summed_df.apply(
-            lambda row: fisher_exact([[row[bottom_label + '_0'], row[bottom_label + '_1']],
-                                      [row[top_label + '_0'], row[top_label + '_1']]])[1], axis=1)
+        summed_df = summed_df.merge(
+            pd.DataFrame(summed_df.apply(
+                lambda row: dict(zip(['oddsratio', 'p-value'],
+                                     fisher_exact([[row[bottom_label + '_0'],
+                                                    row[bottom_label + '_1']],
+                                                   [row[top_label + '_0'],
+                                                    row[top_label + '_1']]]))),
+                axis=1)), left_index=True, right_index=True, how='left')
         summed_df['passed_fdr'], summed_df['fdr_corrected_p_value'] = fdrcorrection(summed_df['p-value'])
 
         oligos = oligos.groupby('age_group').mean().T * 100.0
@@ -46,7 +48,7 @@ def compute_age_correlations(x, y, overwrite=True):
                               left_index=True, right_index=True, how='left')
         df_info = pd.read_csv(os.path.join(base_path, "library_contents.csv"), index_col=0, low_memory=False)[
             ['nuc_seq', 'full name']]
-        oligos = oligos.merge(df_info, left_index=True, right_index=True, how='left')
+        oligos = oligos.merge(df_info, left_index=True, right_index=True, how='left').sort_values(by='fdr_corrected_p_value')
         oligos.to_csv(csv_out_path)
     return pd.read_csv(csv_out_path, index_col=0)
 
@@ -63,7 +65,6 @@ def make_age_correlation_subplot(x, y, ax=None):
     ax.legend(
         [legend_handles[0][legend_handles[1].index('True')], legend_handles[0][1 - legend_handles[1].index('True')]],
         ['Passed FDR', 'Did not pass FDR'], title="Fisher's exact text")
-    # TODO: add annotations
     return ax
 
 
