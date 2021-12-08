@@ -115,8 +115,8 @@ if __name__ == '__main__':
     vs = vs[vs == 2].index
     meta_df = meta_df[meta_df.ID.isin(vs)].sort_values(['ID', 'timepoint'])
 
-    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1], low_memory=False).loc[
-        meta_df.index].unstack()
+    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1],
+                              low_memory=False).loc[meta_df.index].unstack()
     fold_df.columns = fold_df.columns.get_level_values(1)
     fold_df = fold_df[fold_df.columns.intersection(inds)]
 
@@ -203,8 +203,8 @@ if __name__ == '__main__':
             print_match_info(r, k)
 
         res = pandas.DataFrame(res, index=['Mean', 'SD', 'num_miss', 'vals']).T
-        res[['Mean', 'SD', 'num_miss']].to_csv(os.path.join(outpath, "%s_stats_%s.csv" % (name, n)))
+        res[['Mean', 'SD', 'num_miss']].to_csv(os.path.join(outpath, "%s_stats_spearman.csv" % name))
         if ('is_IEDB' in inds.keys()) and ('is_allergens' in inds.keys()):
-            print("For %s IEDB vs allergens Mann-Whitney on diff within and median between:" % n)
+            print("For spearman IEDB vs allergens Mann-Whitney on diff within and median between:")
             print(mannwhitneyu(med['is_allergens'][2], med['is_IEDB'][2]))
         plot_box(res, outpath, name)

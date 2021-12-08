@@ -32,8 +32,8 @@ if __name__ == '__main__':
 
     meta_df = pandas.read_csv(os.path.join(base_path, "cohort.csv"), index_col=0, low_memory=False)
     meta_df = meta_df[(meta_df.timepoint == 1) & (meta_df.num_passed >= MIN_OLIS)]
-    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1], low_memory=False).loc[
-        meta_df.index].unstack()
+    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1],
+                              low_memory=False).loc[meta_df.index].unstack()
     fold_df.columns = fold_df.columns.get_level_values(1)
     fold_df = fold_df[fold_df.columns.intersection(inds)]
 
@@ -51,41 +51,41 @@ if __name__ == '__main__':
     pos = [['is_iedb_infect', base]]
     tmp_inds = df_info[df_info['order'].isna() & df_info.is_IEDB & df_info.is_auto].sort_values(
         'IEDB_organism_name').index
-    df_info.loc[tmp_inds, 'order'] = range(base, base + len(tmp_inds))
+    df_info.loc[tmp_inds, 'order'] = range(base, base+len(tmp_inds))
     base += len(tmp_inds)
     pos.append(['is_iedb_auto', base])
     tmp_inds = df_info[df_info['order'].isna() & df_info.is_IEDB].sort_values('IEDB_organism_name').index
-    df_info.loc[tmp_inds, 'order'] = range(base, base + len(tmp_inds))
+    df_info.loc[tmp_inds, 'order'] = range(base, base+len(tmp_inds))
     base += len(tmp_inds)
     pos.append(['is_iedb_other', base])
     tmp_inds = df_info[df_info['order'].isna() & df_info.is_allergens & df_info.is_plant].sort_values(
         'allergens_common_name').index
-    df_info.loc[tmp_inds, 'order'] = range(base, base + len(tmp_inds))
+    df_info.loc[tmp_inds, 'order'] = range(base, base+len(tmp_inds))
     base += len(tmp_inds)
     pos.append(['is_plant', base])
     tmp_inds = df_info[df_info['order'].isna() & df_info.is_allergens & df_info.is_animal].sort_values(
         'allergens_common_name').index
-    df_info.loc[tmp_inds, 'order'] = range(base, base + len(tmp_inds))
+    df_info.loc[tmp_inds, 'order'] = range(base, base+len(tmp_inds))
     base += len(tmp_inds)
     pos.append(['is_animal', base])
     tmp_inds = df_info[df_info['order'].isna() & df_info.is_allergens & df_info.is_insect].sort_values(
         'allergens_common_name').index
-    df_info.loc[tmp_inds, 'order'] = range(base, base + len(tmp_inds))
+    df_info.loc[tmp_inds, 'order'] = range(base, base+len(tmp_inds))
     base += len(tmp_inds)
     pos.append(['is_insect', base])
     tmp_inds = df_info[df_info['order'].isna() & df_info.is_allergens & df_info.is_fungi].sort_values(
         'allergens_common_name').index
-    df_info.loc[tmp_inds, 'order'] = range(base, base + len(tmp_inds))
+    df_info.loc[tmp_inds, 'order'] = range(base, base+len(tmp_inds))
     base += len(tmp_inds)
     pos.append(['is_fungi', base])
     tmp_inds = df_info[df_info['order'].isna() & df_info.is_allergens & df_info.is_human].sort_values(
         'allergens_common_name').index
-    df_info.loc[tmp_inds, 'order'] = range(base, base + len(tmp_inds))
+    df_info.loc[tmp_inds, 'order'] = range(base, base+len(tmp_inds))
     base += len(tmp_inds)
     pos.append(['is_human', base])
     tmp_inds = df_info[df_info['order'].isna() & df_info.is_allergens & df_info.is_bacteria].sort_values(
         'allergens_common_name').index
-    df_info.loc[tmp_inds, 'order'] = range(base, base + len(tmp_inds))
+    df_info.loc[tmp_inds, 'order'] = range(base, base+len(tmp_inds))
     base += len(tmp_inds)
     pos.append(['is_bacteria', base])
 

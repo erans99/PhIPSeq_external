@@ -95,7 +95,8 @@ if __name__ == '__main__':
     meta_df = pandas.read_csv(os.path.join(base_path, "cohort.csv"), index_col=0, low_memory=False)
     meta_df = meta_df[(meta_df.timepoint == 1) & (meta_df.num_passed >= MIN_OLIS)]
 
-    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1], low_memory=False).loc[meta_df.index].unstack()
+    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1],
+                              low_memory=False).loc[meta_df.index].unstack()
     fold_df.columns = fold_df.columns.get_level_values(1)
     fold_df = fold_df[fold_df.columns.intersection(inds)]
 

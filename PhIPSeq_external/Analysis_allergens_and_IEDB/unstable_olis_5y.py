@@ -1,5 +1,4 @@
 import os
-
 import matplotlib.pyplot as plt
 import numpy
 import pandas
@@ -26,8 +25,8 @@ if __name__ == '__main__':
     vs = vs[vs == 2].index
     meta_df = meta_df[meta_df.ID.isin(vs)].sort_values(['ID', 'timepoint'])
 
-    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1], low_memory=False).loc[
-        meta_df.index].unstack()
+    fold_df = pandas.read_csv(os.path.join(base_path, "fold_data.csv"), index_col=[0, 1],
+                              low_memory=False).loc[meta_df.index].unstack()
     fold_df.columns = fold_df.columns.get_level_values(1)
     fold_df = fold_df[fold_df.columns.intersection(inds)]
 
@@ -74,9 +73,10 @@ if __name__ == '__main__':
         f_exp = [st[0] * prob_chng[0], st[1] * prob_chng[1], st[0] * (1 - prob_chng[0]), st[1] * (1 - prob_chng[1])]
         for i in range(4):
             f_obs.append((chng2[x] == i).sum())
+        if 0 in f_exp:
+            continue
         chi[x] = list(chisquare(f_obs, f_exp, 1)) + [st, f_obs[0] + f_obs[3], f_obs[1] + f_obs[2]]
     chi = pandas.DataFrame(chi, index=['chi_stat', 'chi_pval', 'base_react', 'num_stable', 'num_changed']).T
-    chi = chi.dropna()
 
     FDR = multipletests(chi.chi_pval.values.tolist(), method='fdr_by')
     chi['passed_FDR'] = FDR[0]
@@ -122,3 +122,4 @@ if __name__ == '__main__':
     plt.title("Number of oligos which passed FDR for non-stability in different groups")
     plt.savefig(os.path.join(out_path, "FDR_changed_by_type.png"))
     plt.close("all")
+
