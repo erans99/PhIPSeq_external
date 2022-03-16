@@ -419,7 +419,7 @@ def run_plate(in_dir, seq_num, plate, max_reads, lib, num_in_ref, base_path=conf
     print("Initializing")
     print("Starting")
 
-    out_path = os.path.join(os.path.join(out_dir, "runsPE_%d", "%s", "%s_%s" % (max_reads, lib, plate, ext)))
+    out_path = os.path.join(os.path.join(out_dir, "runsPE_%d", "%s", "%s_%s") % (max_reads, lib, plate, ext))
     if not os.path.exists(out_path):
         os.makedirs(out_path)
 
