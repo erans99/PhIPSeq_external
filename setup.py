@@ -7,6 +7,4 @@ setup(
     author_email='speledleviatan@gmail.com',
     packages=['PhIPSeq_external'],
     license='LICENSE',
-    long_description=open('README.md').read(),
-    requires=['matplotlib', 'numpy', 'pandas', 'scipy', 'scikit-learn', 'xgboost', 'statsmodels', 'seaborn',
-              'statannot', 'shap'])
+    long_description=open('README.md').read())
