@@ -342,7 +342,7 @@ def check_and_correct(tkttores, comments, IDs, out_path, cols, lib, max_reads, n
     print("Checking mocks (with phage, no serum)")
     _, bad_olis, log = check_mock(tkttores, log, min_p, "Mock", "-log10_p")
     print("Checking anchors (with phage, with joint three person serum)")
-    if os.path.exists(os.path.join(config.BASE_PATH, "PE_anchor_levels", "%s", "found_all.csv" % lib)):
+    if os.path.exists(os.path.join(config.BASE_PATH, "PE_anchor_levels", "%s", "found_all.csv") % lib):
         _, log = check_anchor(tkttores, log, 0.9, bad_olis, "Anchor",
                               os.path.join(config.BASE_PATH, "PE_anchor_levels", "%s", "found_all.csv") %
                               lib, cols)
@@ -441,7 +441,7 @@ def run_plate(in_dir, seq_num, plate, max_reads, lib, num_in_ref, base_path=conf
     print("Initializing")
     print("Starting")
 
-    out_path = os.path.join(os.path.join(out_dir, "runsPE_%d", "%s", "%s_%s" % (max_reads, lib, plate, ext)))
+    out_path = os.path.join(os.path.join(out_dir, "runsPE_%d", "%s", "%s_%s") % (max_reads, lib, plate, ext))
     if not os.path.exists(out_path):
         os.makedirs(out_path)
 
