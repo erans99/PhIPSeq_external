@@ -20,7 +20,7 @@ PL5 = -75
 BAD = -1000
 
 ADAP = False
-
+ALLOW_HAM_DIST_START = 3
 
 # load saved object from file
 def load_obj(path, name):
@@ -111,7 +111,7 @@ def check_pe(seq, l2):
     if seq2 == seq[:len(seq2)]:
         return 0
     ham = ham_dist(seq2, seq[:len(seq2)])
-    if ham <= 3:
+    if ham <= ALLOW_HAM_DIST_START:
         return ham
     return -1
 
@@ -508,7 +508,7 @@ def run_map_custom(out_str, allow_indel, use5, f_input, out_dir, libname, sum_co
     found = {}
     not_found = 0
     cnt = [0, 0]
-    cnt_pe_match = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
+    cnt_pe_match = [[0] * (ALLOW_HAM_DIST_START+2), [0] * (ALLOW_HAM_DIST_START+2)]
     sum_found = 0
     max_reached = False
     for f in fs:
@@ -634,11 +634,12 @@ def run_map_custom(out_str, allow_indel, use5, f_input, out_dir, libname, sum_co
                 print("Found %d different IDs (with <=1 error, no indel)" % len(found))
                 out_str += "Found %d different IDs (with <=1 error, no indel)\n" % len(found)
         if f2 is not None:
-            print("Compared short end: %d perfect, %d 1 err, %d 2 errs, %d 3 errs, %d not matched" %
-                  (cnt_pe_match[0][0], cnt_pe_match[0][1], cnt_pe_match[0][2], cnt_pe_match[0][3], cnt_pe_match[0][-1]))
-            out_str += ("Compared short end: %d perfect, %d 1 err, %d 2 errs, %d 3 errs, %d not matched\n" %
-                        (cnt_pe_match[0][0], cnt_pe_match[0][1], cnt_pe_match[0][2], cnt_pe_match[0][3],
-                         cnt_pe_match[0][-1]))
+            tmp_out = "Compared short end: %d perfect, " % cnt_pe_match[0][0]
+            for i in range(1, len(cnt_pe_match[0]) - 1):
+                tmp_out += "%d %d errs, " % (cnt_pe_match[0][i], i)
+            tmp_out += "%d not matched" % cnt_pe_match[0][-1]
+            print(tmp_out)
+            out_str += tmp_out + "\n"
         open(os.path.join(out_dir, "found_%s.txt" % os.path.basename(out_dir)), "w").write(out_str)
     else:
         print("Nothing found!?!?!?")
