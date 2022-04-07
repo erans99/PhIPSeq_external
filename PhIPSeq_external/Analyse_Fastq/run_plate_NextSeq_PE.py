@@ -18,7 +18,7 @@ PVAL = 0.05
 PLOT_LEVEL = 1
 MAX_READS = 1.25 * 10 ** 6
 MIN_PROP_READS = 0.6
-OUT_DUP = False  # whether to create p_values for duplicates or only for one copy
+OUT_DUP = True  # whether to create p_values for duplicates or only for one copy
 
 LIBS = ["A", "T", "AT", "AC1", "AC2", "C2"]  # Agilent, Twist, Agilent&Twist, Agilent&Corona1, Agilent&Corona2, Corona2
 
