@@ -18,7 +18,7 @@ PVAL = 0.05
 PLOT_LEVEL = 1
 MAX_READS = 1.25 * 10 ** 6
 MIN_PROP_READS = 0.6
-OUT_DUP = False  # whether to create p_values for duplicates or only for one copy
+OUT_DUP = True  # whether to create p_values for duplicates or only for one copy
 
 # value only set of 'AT'
 CLEAN_BATCH = True
