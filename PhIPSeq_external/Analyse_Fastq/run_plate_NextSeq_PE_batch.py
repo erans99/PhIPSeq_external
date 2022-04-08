@@ -418,7 +418,8 @@ def clean_dir(base_path, out_path, seq_num, plate, max_reads, ext, lib, rm=True)
     num_out = len(fs)
 
     for f in fs:
-        com = "cp %s %s" % (f, os.path.join(res_path, os.path.basename(f).replace(plate, new_plate)))
+        com = "cp %s %s" % (f, os.path.join(res_path, os.path.basename(f).replace("_" + plate + "_",
+                                                                                  "_" + new_plate + "_")))
         os.system(com)
     for f in ['all_info.csv', 'all_log.txt']:
         fs = glob.glob(os.path.join(out_path, "final_res", f))
